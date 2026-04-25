@@ -296,9 +296,23 @@
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
             utterance.rate = 1.0; 
+            
+            // 優先尋找男聲 (Male) 或是特定的 Google 英文男聲
             const voices = window.speechSynthesis.getVoices();
-            const maleVoice = voices.find(v => v.name.includes('Google US English') || (v.lang === 'en-US' && v.name.includes('Male')));
-            if (maleVoice) utterance.voice = maleVoice;
+            const maleVoice = voices.find(v => 
+                (v.lang === 'en-US' && v.name.toLowerCase().includes('male')) || 
+                (v.lang === 'en-US' && v.name.includes('Google US English') && v.name.includes('Male')) ||
+                (v.lang === 'en-US' && (v.name.includes('David') || v.name.includes('Mark') || v.name.includes('James')))
+            );
+            
+            if (maleVoice) {
+                utterance.voice = maleVoice;
+            } else {
+                // 如果找不到明確標記男聲的，則嘗試找任何英文聲音
+                const anyEngVoice = voices.find(v => v.lang === 'en-US');
+                if (anyEngVoice) utterance.voice = anyEngVoice;
+            }
+            
             window.speechSynthesis.speak(utterance);
         }
 
@@ -347,9 +361,6 @@
             renderQuizItem();
         }
 
-        /**
-         * 修正功能 1：點擊上一題/下一題時，系統會立即清空並隱藏辨識文字、得分標籤以及正確答案。
-         */
         function clearQuizUIFeedback() {
             const scoreArea = document.getElementById('quiz-score-area');
             const scoreTag = document.getElementById('quiz-score-tag');
@@ -363,7 +374,6 @@
         }
 
         function renderQuizItem() {
-            // 切換題目渲染時，優先執行介面清空
             clearQuizUIFeedback();
 
             const item = quizPool[quizIndex];
@@ -374,16 +384,11 @@
             const nextBtn = document.getElementById('quiz-next-btn');
             const prevBtn = document.getElementById('quiz-prev-btn');
             
-            // 初始狀態隱藏按鈕 (直到錄音完成或確定跳轉邏輯)
             nextBtn.classList.add('invisible');
             prevBtn.classList.add('invisible');
 
-            // 判斷是否顯示導覽按鈕
             if (quizIndex > 0) prevBtn.classList.remove('invisible');
             
-            // 備註：即便之前有得分，根據需求切換時也要「清空介面」，所以不主動調用 displayExistingScore()
-            // 除非重新錄音，否則介面保持清空狀態。
-
             quizProcessing = false;
             resetQuizTimer();
         }
@@ -400,7 +405,6 @@
             if (originalEnglish) originalEnglish.innerText = item.english;
             if (scoreArea) scoreArea.classList.remove('hidden');
             
-            // 錄音完成後顯示下一題按鈕
             if (quizIndex < quizPool.length - 1) {
                 const nextBtn = document.getElementById('quiz-next-btn');
                 nextBtn.classList.remove('invisible');
@@ -469,7 +473,6 @@
         }
 
         function goToNextQuizItem() {
-            // 切換時立即清空所有回饋文字
             clearQuizUIFeedback();
             if (quizIndex < quizPool.length - 1) {
                 quizIndex++;
@@ -480,7 +483,6 @@
         }
 
         function goToPrevQuizItem() {
-            // 切換時立即清空所有回饋文字
             clearQuizUIFeedback();
             if (quizIndex > 0) {
                 quizIndex--;
