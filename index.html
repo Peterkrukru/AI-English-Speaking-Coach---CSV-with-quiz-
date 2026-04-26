@@ -31,6 +31,15 @@
         .diff-error {
             border-bottom: 2px dotted #fca5a5;
         }
+        .copyright-tag {
+            position: absolute;
+            right: 1.5rem;
+            bottom: 1rem;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(100, 116, 139, 0.4);
+            pointer-events: none;
+        }
         @keyframes pulse-ring {
             0% { transform: scale(.8); opacity: 0.5; }
             100% { transform: scale(1.2); opacity: 0; }
@@ -59,6 +68,15 @@
         
         <!-- 頂部資訊列 -->
         <div id="top-bar" class="w-full max-w-5xl bg-white/70 backdrop-blur-md px-4 py-2 rounded-[2rem] shadow-sm border border-white/50 mb-3 flex items-center gap-4 hidden shrink-0">
+            <div class="flex items-center gap-2 shrink-0">
+                <button onclick="toggleInfo(true)" class="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-100/50 rounded-full">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                </button>
+                <label class="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-100/50 rounded-full cursor-pointer">
+                    <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                    <input type="file" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+                </label>
+            </div>
             <div id="stats-area" class="flex items-center gap-4 text-xs font-black uppercase">
                 <div class="flex items-center gap-1"><span class="text-red-500">重來</span> <span id="stat-again">0</span></div>
                 <div class="flex items-center gap-1"><span class="text-orange-500">隨機</span> <span id="stat-random">0</span></div>
@@ -97,6 +115,8 @@
                         <i data-lucide="zap" class="w-6 h-6 fill-current"></i>
                         <span>進行10題測驗</span>
                     </button>
+
+                    <div class="copyright-tag">@Peter Huang 2026/4/25</div>
                 </div>
             </div>
 
@@ -167,7 +187,7 @@
                     <p id="result-stats" class="text-slate-500 font-medium mb-8"></p>
                     <div class="space-y-4">
                         <button onclick="location.reload()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-slate-700 transition-all shadow-lg">返回首頁</button>
-                        <button onclick="startQuiz(10)" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">再測一次</button>
+                        <button onclick="startQuiz(10)" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">口說測驗</button>
                     </div>
                 </div>
             </div>
@@ -181,7 +201,6 @@
         let stats = { again: 0, random: 0, review: 0, pass: 0 };
         let isListening = false;
         let lastRecognition = null;
-        let retryCount = 0;
         
         let quizPool = [];
         let quizIndex = 0;
@@ -193,7 +212,7 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitRecognition || window.webkitSpeechRecognition;
         let recognition = SpeechRecognition ? new SpeechRecognition() : null;
         
-        // 核心：語音辨識 UI 更新與重試邏輯
+        // 統一更新麥克風 UI 的函式，確保狀態同步
         function updateMicUI(active) {
             isListening = active;
             const quizBtn = document.getElementById('quiz-mic-btn');
@@ -201,6 +220,7 @@
                 if (active) quizBtn.classList.add('mic-active');
                 else quizBtn.classList.remove('mic-active');
             }
+            // 卡片複習介面的麥克風渲染交給 render() 處理，但旗標必須同步
             if (!document.getElementById('card-display').classList.contains('hidden')) {
                 render();
             }
@@ -211,13 +231,11 @@
             recognition.continuous = false;
             recognition.interimResults = false;
 
-            recognition.onstart = () => {
-                updateMicUI(true);
-            };
+            recognition.onstart = () => updateMicUI(true);
 
             recognition.onresult = (e) => {
-                retryCount = 0; // 成功獲得結果，重置重試計數
                 const text = e.results[0][0].transcript;
+                // 收到結果後主動停止錄音
                 recognition.stop();
                 if (!document.getElementById('quiz-state').classList.contains('hidden')) {
                     processQuizResult(text);
@@ -226,37 +244,12 @@
                 }
             };
 
+            recognition.onend = () => updateMicUI(false);
             recognition.onerror = (e) => {
                 console.error("Speech Recognition Error:", e.error);
-                
-                // 處理 no-speech 錯誤：自動重試機制
-                if (e.error === 'no-speech' && retryCount < 2) {
-                    retryCount++;
-                    console.log(`No speech detected, retrying... (${retryCount})`);
-                    // 稍待片刻自動重連
-                    setTimeout(() => {
-                        if (isListening) recognition.start();
-                    }, 300);
-                    return;
-                }
-
-                if (e.error === 'no-speech') {
-                    const transcriptEl = document.getElementById('quiz-transcript');
-                    if (transcriptEl) transcriptEl.innerText = "未偵測到聲音，請重試";
-                }
-                
                 updateMicUI(false);
-                retryCount = 0;
-            };
-
-            recognition.onend = () => {
-                if (retryCount === 0) { // 只有在沒有自動重試的情況下才關閉 UI
-                    updateMicUI(false);
-                }
             };
         }
-
-        // --- 核心邏輯 ---
 
         function parseCSV(text) {
             const result = [];
@@ -355,17 +348,13 @@
 
         function startListening(e) {
             e.stopPropagation();
-            if (!recognition) return;
-            if (isListening) {
-                recognition.stop();
-                return;
-            }
-            retryCount = 0;
+            if (!recognition || isListening) return;
             lastRecognition = null; 
             try {
                 recognition.start();
             } catch (err) {
-                recognition.stop();
+                console.error("Start failed:", err);
+                updateMicUI(false);
             }
         }
 
@@ -407,7 +396,6 @@
         function renderQuizItem() {
             if (recognition) recognition.stop();
             updateMicUI(false);
-            retryCount = 0;
             
             document.getElementById('quiz-score-area').classList.add('hidden');
             document.getElementById('quiz-score-tag').classList.add('hidden');
@@ -444,13 +432,8 @@
         }
 
         function startQuizListening() {
-            if (!recognition) return;
-            if (isListening) {
-                recognition.stop();
-                return;
-            }
+            if (!recognition || isListening) return;
             
-            retryCount = 0;
             document.getElementById('quiz-transcript').innerText = "聆聽中...";
             document.getElementById('quiz-score-area').classList.add('hidden');
             document.getElementById('quiz-score-tag').classList.add('hidden');
@@ -459,6 +442,7 @@
             try {
                 recognition.start();
             } catch (err) {
+                console.warn("Recognition already started or failed:", err);
                 recognition.stop();
             }
         }
@@ -466,13 +450,13 @@
         async function processQuizResult(text) {
             clearInterval(quizTimer);
             quizProcessing = true;
-            if (recognition) recognition.stop();
+            if (recognition) recognition.stop(); // 確保開始評分時已停止錄音
             
             const item = quizPool[quizIndex];
             const apiKey = document.getElementById('api-key-input').value;
             
             let score = 0;
-            let transcriptText = text || "(未檢測到有效發音)";
+            let transcriptText = text || "(無收音)";
 
             if (text) {
                 if (apiKey) {
@@ -623,6 +607,11 @@
                     </div>`;
             }
             lucide.createIcons();
+        }
+
+        function toggleInfo(s) { 
+            const info = document.getElementById('info-modal');
+            if(info) info.classList.toggle('hidden', !s); 
         }
 
         window.onload = () => { 
