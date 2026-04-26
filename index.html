@@ -323,17 +323,41 @@
         }
 
         // --- 語音播放 ---
-        function playTextAsMale(text) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            utterance.rate = 1.0; 
-            const voices = window.speechSynthesis.getVoices();
-            const maleVoice = voices.find(v => (v.lang === 'en-US' && v.name.toLowerCase().includes('male')) || (v.lang === 'en-US' && v.name.includes('Google US English') && v.name.includes('Male')));
-            if (maleVoice) utterance.voice = maleVoice;
-            window.speechSynthesis.speak(utterance);
-        }
+function playTextAsMale(text) {
+    // 1. 先取消當前正在播放的聲音
+    window.speechSynthesis.cancel();
 
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 1.0; 
+    utterance.pitch = 0.9; // 稍微調低音調，讓聲音聽起來較沉穩（偏男聲）
+
+    // 2. 取得系統目前可用的語音包
+    const voices = window.speechSynthesis.getVoices();
+    
+    // 3. 尋找男聲 (優先順序：包含 Male -> 包含 Google -> 系統第一順位英文)
+    let selectedVoice = voices.find(v => 
+        v.lang.startsWith('en-US') && v.name.toLowerCase().includes('male')
+    );
+
+    if (!selectedVoice) {
+        selectedVoice = voices.find(v => 
+            v.lang.startsWith('en-US') && v.name.includes('Google')
+        );
+    }
+
+    if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang.startsWith('en-US'));
+    }
+
+    // 4. 如果有找到合適的語音包，就套用
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+    }
+
+    // 5. 播放
+    window.speechSynthesis.speak(utterance);
+}
         function playAudio() { if (queue.length) playTextAsMale(queue[0].english); }
         function playQuizAnswerAudio() { if (quizPool.length) playTextAsMale(quizPool[quizIndex].english); }
 
