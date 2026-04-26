@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI英文口語教練_專業版</title>
+    <title>AI英文口語教練_csv(含測驗)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -69,6 +69,7 @@
         <!-- 頂部資訊列 -->
         <div id="top-bar" class="w-full max-w-5xl bg-white/70 backdrop-blur-md px-4 py-2 rounded-[2rem] shadow-sm border border-white/50 mb-3 flex items-center gap-4 hidden shrink-0">
             <div class="flex items-center gap-2 shrink-0">
+                <!-- 說明條按鈕 -->
                 <button onclick="toggleInfo(true)" class="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-100/50 rounded-full">
                     <i data-lucide="info" class="w-5 h-5"></i>
                 </button>
@@ -94,7 +95,7 @@
 
         <div id="main-content" class="w-full max-w-4xl flex flex-col flex-1 min-h-0 overflow-hidden">
             
-            <!-- 首頁 -->
+            <!-- 初始狀態 (匯入頁面) -->
             <div id="empty-state" class="flex-1 flex flex-col items-center justify-center">
                 <div class="bg-[#d9dbdf]/80 backdrop-blur p-10 rounded-[3rem] w-full max-w-md flex flex-col items-center text-center shadow-sm relative border border-white/20">
                     <div class="text-blue-500 mb-6"><i data-lucide="book-open" class="w-16 h-16 stroke-[2]"></i></div>
@@ -102,7 +103,7 @@
                     
                     <div class="w-full mb-6 text-left">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-2">Gemini API Key</label>
-                        <input type="password" id="api-key-input" placeholder="在此輸入 API Key..." class="w-full px-5 py-3 rounded-2xl bg-white/50 border border-slate-300 outline-none transition-all text-sm">
+                        <input type="password" id="api-key-input" placeholder="在此輸入 API Key (選填)..." class="w-full px-5 py-3 rounded-2xl bg-white/50 border border-slate-300 outline-none transition-all text-sm">
                     </div>
 
                     <label class="w-full bg-white text-slate-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 transition-all shadow-sm border border-slate-200 mb-4 active:scale-[0.98]">
@@ -116,11 +117,11 @@
                         <span>進行10題測驗</span>
                     </button>
 
-                    <div class="copyright-tag">@Peter Huang 2026/4/25</div>
+                    <div class="copyright-tag">@Peter Huang 2026/4/26</div>
                 </div>
             </div>
 
-            <!-- 卡片複習介面 -->
+            <!-- 卡片複習狀態 -->
             <div id="card-display" class="hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div id="flashcard" class="bg-white flex-1 min-h-0 w-full rounded-[2.5rem] shadow-xl p-6 md:p-10 flex flex-col relative cursor-pointer border-b-8 border-slate-200 transition-all overflow-hidden" onclick="handleCardClick()">
                     <div id="card-body" class="flex-1 min-h-0 overflow-hidden text-fit-container"></div>
@@ -134,7 +135,7 @@
                 </div>
             </div>
 
-            <!-- 測驗介面 -->
+            <!-- 測驗狀態 -->
             <div id="quiz-state" class="hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="bg-white flex-1 min-h-0 w-full rounded-[3rem] shadow-2xl p-6 flex flex-col items-center justify-center text-center relative border-b-8 border-slate-200 overflow-hidden">
                     <div id="quiz-timer" class="absolute top-6 right-8 text-3xl font-black text-slate-200">20</div>
@@ -179,7 +180,7 @@
                 </div>
             </div>
 
-            <!-- 結算介面 -->
+            <!-- 完成/結算狀態 -->
             <div id="finished-state" class="flex-1 flex flex-col items-center justify-center hidden">
                 <div id="result-card" class="bg-white p-10 rounded-[3rem] shadow-xl text-center max-w-md w-full border-b-8 border-slate-200">
                     <div id="result-icon"></div>
@@ -194,21 +195,44 @@
         </div>
     </div>
 
+    <!-- 說明條彈窗 -->
+    <div id="info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center px-6 hidden">
+        <div class="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative">
+            <button onclick="toggleInfo(false)" class="absolute top-6 right-6 text-slate-300 hover:text-slate-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <h3 class="text-2xl font-black text-slate-800 mb-6">教材匯入說明</h3>
+            <div class="space-y-4 text-slate-600 font-medium leading-relaxed">
+                <p>請備妥一個符合格式的 <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-bold">CSV</span> 檔案：</p>
+                <ul class="list-disc list-inside space-y-2 text-sm">
+                    <li>第一欄：關鍵字 (顯示於卡片正面)</li>
+                    <li>第二欄：第一行為「正確英文」，其餘為「中文說明」</li>
+                    <li>請將檔案另存為 <span class="font-bold underline">UTF-8</span> 編碼格式</li>
+                </ul>
+                <div class="bg-slate-50 p-4 rounded-2xl text-xs font-mono text-slate-400">
+                    單字A, "Apple\n蘋果"<br>
+                    句子B, "How are you?\n你最近好嗎？"
+                </div>
+            </div>
+            <button onclick="toggleInfo(false)" class="w-full mt-8 bg-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-600 transition-all">我明白了</button>
+        </div>
+    </div>
+
     <script>
-        let originalCards = [];
-        let queue = [];
-        let isFlipped = false;
+        // --- 核心變數 ---
+        let originalCards = []; // CSV 原始資料
+        let queue = [];         // SRS 複習佇列
+        let isFlipped = false;  // 卡片翻面狀態
         let stats = { again: 0, random: 0, review: 0, pass: 0 };
         let isListening = false;
         let lastRecognition = null;
         
-        let quizPool = [];
-        let quizIndex = 0;
-        let quizScores = [];
-        let quizTimer = null;
-        let timeLeft = 20;
-        let quizProcessing = false;
+        let quizPool = [];    // 測驗隨機池
+        let quizIndex = 0;    // 當前測驗索引
+        let quizScores = [];  // 各題得分
+        let quizTimer = null; // 計時器 ID
+        let timeLeft = 20;    // 剩餘時間
+        let quizProcessing = false; // 是否處理中
 
+        // --- 語音辨識模組 ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitRecognition || window.webkitSpeechRecognition;
         let recognition = SpeechRecognition ? new SpeechRecognition() : null;
         
@@ -219,35 +243,27 @@
                 if (active) quizBtn.classList.add('mic-active');
                 else quizBtn.classList.remove('mic-active');
             }
-            if (!document.getElementById('card-display').classList.contains('hidden')) {
-                render();
-            }
+            if (!document.getElementById('card-display').classList.contains('hidden')) render();
         }
 
         if (recognition) {
             recognition.lang = 'en-US';
             recognition.continuous = false;
             recognition.interimResults = false;
-
             recognition.onstart = () => updateMicUI(true);
-
             recognition.onresult = (e) => {
                 const text = e.results[0][0].transcript;
                 recognition.stop();
-                if (!document.getElementById('quiz-state').classList.contains('hidden')) {
-                    processQuizResult(text);
-                } else {
-                    processRecognitionResult(text);
-                }
+                if (!document.getElementById('quiz-state').classList.contains('hidden')) processQuizResult(text);
+                else processRecognitionResult(text);
             };
-
             recognition.onend = () => updateMicUI(false);
-            recognition.onerror = (e) => {
-                console.error("Speech Recognition Error:", e.error);
-                updateMicUI(false);
-            };
+            recognition.onerror = () => updateMicUI(false);
         }
 
+        /** * [模組] CSV 解析
+         * 處理含引號與多行內容的資料格式
+         */
         function parseCSV(text) {
             const result = [];
             let row = [];
@@ -264,11 +280,7 @@
                         if (row.length >= 2) {
                             const front = row[0].trim();
                             const lines = row[1].split(/\r?\n/);
-                            result.push({
-                                front_display: front,
-                                english: lines[0]?.trim() || "",
-                                chinese: lines[1]?.trim() || front
-                            });
+                            result.push({ front_display: front, english: lines[0]?.trim() || "", chinese: lines[1]?.trim() || front });
                         }
                         row = []; col = "";
                     }
@@ -302,8 +314,7 @@
         function startNewSession() {
             queue = [...originalCards];
             stats = { again: 0, random: 0, review: 0, pass: 0 };
-            isFlipped = false;
-            lastRecognition = null;
+            isFlipped = false; lastRecognition = null;
             document.querySelectorAll('#empty-state, #finished-state, #quiz-state').forEach(el => el.classList.add('hidden'));
             document.getElementById('card-display').classList.remove('hidden');
             document.getElementById('top-bar').classList.remove('hidden');
@@ -311,29 +322,20 @@
             playAudio();
         }
 
+        // --- 語音播放 ---
         function playTextAsMale(text) {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
             utterance.rate = 1.0; 
             const voices = window.speechSynthesis.getVoices();
-            const maleVoice = voices.find(v => 
-                (v.lang === 'en-US' && v.name.toLowerCase().includes('male')) || 
-                (v.lang === 'en-US' && v.name.includes('Google US English') && v.name.includes('Male'))
-            );
+            const maleVoice = voices.find(v => (v.lang === 'en-US' && v.name.toLowerCase().includes('male')) || (v.lang === 'en-US' && v.name.includes('Google US English') && v.name.includes('Male')));
             if (maleVoice) utterance.voice = maleVoice;
             window.speechSynthesis.speak(utterance);
         }
 
-        function playAudio() {
-            if (!queue.length) return;
-            playTextAsMale(queue[0].english);
-        }
-
-        function playQuizAnswerAudio() {
-            if (!quizPool.length) return;
-            playTextAsMale(quizPool[quizIndex].english);
-        }
+        function playAudio() { if (queue.length) playTextAsMale(queue[0].english); }
+        function playQuizAnswerAudio() { if (quizPool.length) playTextAsMale(quizPool[quizIndex].english); }
 
         function handleCardClick() {
             if (!queue.length) return;
@@ -347,31 +349,20 @@
             e.stopPropagation();
             if (!recognition || isListening) return;
             lastRecognition = null; 
-            try {
-                recognition.start();
-            } catch (err) {
-                console.error("Start failed:", err);
-                updateMicUI(false);
-            }
+            try { recognition.start(); } catch (err) { updateMicUI(false); }
         }
 
-        // 核心評分邏輯 (模組化供複習與測驗使用)
+        /**
+         * [模組] 核心評分公式 (單字級比對)
+         */
         function calculatePronunciationScore(userText, targetText) {
             const target = targetText.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
             const user = userText.toLowerCase().trim();
             const targetWords = target.split(/\s+/);
             const userWords = user.split(/\s+/);
-            
-            const diff = userWords.map(w => ({ 
-                word: w, 
-                status: targetWords.includes(w) ? 'correct' : 'error' 
-            }));
-            
+            const diff = userWords.map(w => ({ word: w, status: targetWords.includes(w) ? 'correct' : 'error' }));
             const score = (diff.filter(d => d.status === 'correct').length / targetWords.length) * 10;
-            return {
-                score: Math.min(10, score).toFixed(1),
-                diff
-            };
+            return { score: Math.min(10, score).toFixed(1), diff };
         }
 
         function processRecognitionResult(text) {
@@ -380,19 +371,20 @@
             render();
         }
 
+        /**
+         * [模組] SRS 間隔重複
+         */
         function handleSRS(type) {
             const item = queue.shift();
             if (type === 'again') queue.splice(1, 0, item);
             else if (type === 'random') queue.splice(Math.floor(queue.length / 2), 0, item);
             else if (type === 'review') queue.push(item);
-            
             stats[type]++; 
-            isFlipped = false; 
-            lastRecognition = null;
-            render(); 
-            if (queue.length) playAudio();
+            isFlipped = false; lastRecognition = null;
+            render(); if (queue.length) playAudio();
         }
 
+        // --- 測驗控制 ---
         function startQuiz(count) {
             if (originalCards.length < 1) return;
             quizPool = [...originalCards].sort(() => Math.random() - 0.5).slice(0, count);
@@ -407,26 +399,23 @@
         function renderQuizItem() {
             if (recognition) recognition.stop();
             updateMicUI(false);
-            
             document.getElementById('quiz-score-area').classList.add('hidden');
             document.getElementById('quiz-score-tag').classList.add('hidden');
-            document.getElementById('quiz-original-english').innerText = "";
             document.getElementById('quiz-transcript').innerText = "";
             document.getElementById('quiz-next-btn').classList.add('invisible');
             quizProcessing = false;
-
             const item = quizPool[quizIndex];
             document.getElementById('quiz-chinese').innerText = item.chinese;
             document.getElementById('progress-bar').style.width = `${((quizIndex) / quizPool.length) * 100}%`;
             document.getElementById('queue-count').innerText = `${quizIndex + 1} / ${quizPool.length}`;
-
             const prevBtn = document.getElementById('quiz-prev-btn');
-            prevBtn.classList.add('invisible');
-            if (quizIndex > 0) prevBtn.classList.remove('invisible');
-            
+            prevBtn.classList.toggle('invisible', quizIndex === 0);
             resetQuizTimer();
         }
 
+        /**
+         * [模組] 測驗計時器
+         */
         function resetQuizTimer() {
             clearInterval(quizTimer);
             timeLeft = 20;
@@ -444,104 +433,69 @@
 
         function startQuizListening() {
             if (!recognition || isListening) return;
-            
             document.getElementById('quiz-transcript').innerText = "聆聽中...";
             document.getElementById('quiz-score-area').classList.add('hidden');
             document.getElementById('quiz-score-tag').classList.add('hidden');
             document.getElementById('quiz-next-btn').classList.add('invisible');
-            
-            try {
-                recognition.start();
-            } catch (err) {
-                console.warn("Recognition already started or failed:", err);
-                recognition.stop();
-            }
+            try { recognition.start(); } catch (err) { recognition.stop(); }
         }
 
+        /**
+         * [模組] AI/公式雙軌評分
+         */
         async function processQuizResult(text) {
             clearInterval(quizTimer);
             quizProcessing = true;
             if (recognition) recognition.stop(); 
-            
             const item = quizPool[quizIndex];
             const apiKey = document.getElementById('api-key-input').value;
-            
             let scoreValue = 0;
             let transcriptText = text || "(無收音)";
 
             if (text) {
                 if (apiKey) {
-                    // 使用 AI 進行評分
                     try {
                         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{ parts: [{ text: `評估英文翻譯：將「${item.chinese}」譯為英文。學生說：「${text}」。請給出 0-10 分(僅回傳數字)。` }] }]
-                            })
+                            body: JSON.stringify({ contents: [{ parts: [{ text: `評估英文翻譯：將「${item.chinese}」譯為英文。學生說：「${text}」。請給出 0-10 分(僅回傳數字)。` }] }] })
                         });
                         const data = await response.json();
-                        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "0";
-                        scoreValue = parseFloat(aiText.match(/\d+(\.\d+)?/)?.[0] || 0);
+                        scoreValue = parseFloat(data.candidates?.[0]?.content?.parts?.[0]?.text?.match(/\d+(\.\d+)?/)?.[0] || 0);
                     } catch (e) {
-                        // AI 失敗時回退到公式評分
-                        const result = calculatePronunciationScore(text, item.english);
-                        scoreValue = parseFloat(result.score);
+                        scoreValue = parseFloat(calculatePronunciationScore(text, item.english).score);
                     }
                 } else {
-                    // 比照複習模式評分公式：比照複習模式評分公式一樣。
-                    const result = calculatePronunciationScore(text, item.english);
-                    scoreValue = parseFloat(result.score);
+                    scoreValue = parseFloat(calculatePronunciationScore(text, item.english).score);
                 }
             }
-
             quizScores[quizIndex] = scoreValue;
             document.getElementById('quiz-transcript').innerText = transcriptText;
-            
-            const scoreArea = document.getElementById('quiz-score-area');
+            document.getElementById('quiz-score-area').classList.remove('hidden');
+            document.getElementById('quiz-original-english').innerText = item.english;
             const scoreTag = document.getElementById('quiz-score-tag');
-            const originalEnglish = document.getElementById('quiz-original-english');
-            
-            if (originalEnglish) originalEnglish.innerText = item.english;
-            scoreArea.classList.remove('hidden');
             scoreTag.innerText = `${scoreValue.toFixed(1)}/10`;
             scoreTag.classList.remove('hidden');
-            
             const nextBtn = document.getElementById('quiz-next-btn');
             nextBtn.classList.remove('invisible');
             nextBtn.querySelector('span').innerText = (quizIndex < quizPool.length - 1) ? "下一題" : "結算";
             lucide.createIcons();
         }
 
-        function goToNextQuizItem() {
-            if (quizIndex < quizPool.length - 1) {
-                quizIndex++;
-                renderQuizItem();
-            } else {
-                showQuizFinalResult();
-            }
-        }
-
-        function goToPrevQuizItem() {
-            if (quizIndex > 0) {
-                quizIndex--;
-                quizScores[quizIndex] = null;
-                renderQuizItem();
-            }
-        }
+        function goToNextQuizItem() { if (quizIndex < quizPool.length - 1) { quizIndex++; renderQuizItem(); } else showQuizFinalResult(); }
+        function goToPrevQuizItem() { if (quizIndex > 0) { quizIndex--; quizScores[quizIndex] = null; renderQuizItem(); } }
 
         function showQuizFinalResult() {
             document.getElementById('quiz-state').classList.add('hidden');
             document.getElementById('finished-state').classList.remove('hidden');
-            document.getElementById('result-icon').innerHTML = `<i data-lucide="check-circle-2" class="w-24 h-24 text-blue-500 mx-auto mb-6"></i>`;
+            document.getElementById('result-icon').innerHTML = `<i data-lucide="award" class="w-24 h-24 text-blue-500 mx-auto mb-6"></i>`;
             document.getElementById('result-title').innerText = "測驗結算";
-            
-            const totalScore = quizScores.reduce((a, b) => (a || 0) + (b || 0), 0);
-            const avgScore = (totalScore / quizPool.length).toFixed(1);
+            const avgScore = (quizScores.reduce((a, b) => (a || 0) + (b || 0), 0) / quizPool.length).toFixed(1);
             document.getElementById('result-stats').innerText = `平均得分：${avgScore} / 10`;
             lucide.createIcons();
         }
 
+        // --- 視窗渲染邏輯 ---
         function render() {
             const display = document.getElementById('card-display');
             const finished = document.getElementById('finished-state');
@@ -551,14 +505,12 @@
             if (!queue.length && quiz.classList.contains('hidden') && finished.classList.contains('hidden') && originalCards.length > 0) {
                 display.classList.add('hidden'); topBar.classList.add('hidden'); finished.classList.remove('hidden');
                 document.getElementById('result-icon').innerHTML = `<i data-lucide="check-circle-2" class="w-16 h-16 text-emerald-500 mx-auto mb-6"></i>`;
-                document.getElementById('result-title').innerText = "練習完成！";
-                document.getElementById('result-stats').innerText = "所有教材已完成複習。";
-                lucide.createIcons();
-                return;
+                document.getElementById('result-title').innerText = "複習完成！";
+                document.getElementById('result-stats').innerText = "您已完成目前所有的教材隊列。";
+                lucide.createIcons(); return;
             }
 
             if (originalCards.length > 0) topBar.classList.remove('hidden');
-            
             document.getElementById('stat-again').innerText = stats.again;
             document.getElementById('stat-random').innerText = stats.random;
             document.getElementById('stat-review').innerText = stats.review;
@@ -570,71 +522,34 @@
             }
 
             if (!queue.length) return;
-
             const card = queue[0];
             const cardBody = document.getElementById('card-body');
             const srsControls = document.getElementById('srs-controls');
 
             if (!isFlipped) {
                 srsControls.classList.add('hidden');
-                cardBody.innerHTML = `
-                    <div class="flex items-center gap-6">
-                        <div class="text-blue-500 bg-blue-50 p-3 rounded-2xl shrink-0"><i data-lucide="volume-2" class="w-8 h-8"></i></div>
-                        <div class="text-4xl md:text-5xl font-black text-slate-700 leading-tight">${card.front_display}</div>
-                    </div>`;
+                cardBody.innerHTML = `<div class="flex items-center gap-6"><div class="text-blue-500 bg-blue-50 p-3 rounded-2xl shrink-0"><i data-lucide="volume-2" class="w-8 h-8"></i></div><div class="text-4xl md:text-5xl font-black text-slate-700 leading-tight">${card.front_display}</div></div>`;
             } else {
                 srsControls.classList.remove('hidden');
                 const fs = card.english.length > 40 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl';
-                
                 let resultHtml = "";
                 if (lastRecognition) {
                     const diffHtml = lastRecognition.diff.map(d => `<span class="${d.status === 'correct' ? 'text-emerald-500' : 'text-red-500 diff-error'}">${d.word}</span>`).join(' ');
-                    resultHtml = `
-                        <div class="flex-1 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
-                            <div class="${fs} font-bold leading-tight">${diffHtml}</div>
-                            <div class="text-sm font-black bg-white px-3 py-1 rounded-full shadow-sm text-slate-400 shrink-0 ml-4 border border-slate-100">${lastRecognition.score}/10</div>
-                        </div>`;
+                    resultHtml = `<div class="flex-1 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between"><div class="${fs} font-bold leading-tight">${diffHtml}</div><div class="text-sm font-black bg-white px-3 py-1 rounded-full shadow-sm text-slate-400 shrink-0 ml-4 border border-slate-100">${lastRecognition.score}/10</div></div>`;
                 }
-
-                cardBody.innerHTML = `
-                    <div class="flex flex-col gap-6">
-                        <div class="flex items-start">
-                            <div class="text-blue-500 bg-blue-50 p-3 rounded-2xl mr-6 shrink-0"><i data-lucide="volume-2" class="w-8 h-8"></i></div>
-                            <div class="${fs} font-black text-slate-800 leading-tight">${card.english}</div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <button onclick="startListening(event)" class="p-3 rounded-2xl ${isListening ? 'bg-red-500 text-white' : 'bg-emerald-50 text-emerald-600'} transition-all shrink-0 relative flex items-center justify-center">
-                                <div class="${isListening ? 'mic-active' : ''}"></div>
-                                <i data-lucide="mic" class="w-8 h-8 relative z-10"></i>
-                            </button>
-                            ${resultHtml}
-                        </div>
-                        <div class="flex">
-                            <div class="w-8 mr-6 p-3 shrink-0 invisible"></div>
-                            <div class="text-xl md:text-2xl font-medium text-slate-400 border-l-4 border-slate-200 pl-6">
-                                ${card.chinese}
-                            </div>
-                        </div>
-                    </div>`;
+                cardBody.innerHTML = `<div class="flex flex-col gap-6"><div class="flex items-start"><div class="text-blue-500 bg-blue-50 p-3 rounded-2xl mr-6 shrink-0"><i data-lucide="volume-2" class="w-8 h-8"></i></div><div class="${fs} font-black text-slate-800 leading-tight">${card.english}</div></div><div class="flex items-center gap-4"><button onclick="startListening(event)" class="p-3 rounded-2xl ${isListening ? 'bg-red-500 text-white' : 'bg-emerald-50 text-emerald-600'} transition-all shrink-0 relative flex items-center justify-center"><div class="${isListening ? 'mic-active' : ''}"></div><i data-lucide="mic" class="w-8 h-8 relative z-10"></i></button>${resultHtml}</div><div class="flex"><div class="w-8 mr-6 p-3 shrink-0 invisible"></div><div class="text-xl md:text-2xl font-medium text-slate-400 border-l-4 border-slate-200 pl-6">${card.chinese}</div></div></div>`;
             }
             lucide.createIcons();
         }
 
-        function toggleInfo(s) { 
-            const info = document.getElementById('info-modal');
-            if(info) info.classList.toggle('hidden', !s); 
-        }
+        function toggleInfo(s) { document.getElementById('info-modal').classList.toggle('hidden', !s); }
 
         window.onload = () => { 
             const savedKey = localStorage.getItem('gemini_api_key');
             if(savedKey) document.getElementById('api-key-input').value = savedKey;
             document.getElementById('api-key-input').onchange = (e) => localStorage.setItem('gemini_api_key', e.target.value);
-            
             window.speechSynthesis.getVoices();
-            if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-            }
-            
+            if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
             lucide.createIcons(); 
         };
     </script>
