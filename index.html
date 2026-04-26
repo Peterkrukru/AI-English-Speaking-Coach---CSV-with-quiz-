@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI英文口語教練_修復版</title>
+    <title>AI英文口語教練_專業版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -212,7 +212,6 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitRecognition || window.webkitSpeechRecognition;
         let recognition = SpeechRecognition ? new SpeechRecognition() : null;
         
-        // 統一更新麥克風 UI 的函式，確保狀態同步
         function updateMicUI(active) {
             isListening = active;
             const quizBtn = document.getElementById('quiz-mic-btn');
@@ -220,7 +219,6 @@
                 if (active) quizBtn.classList.add('mic-active');
                 else quizBtn.classList.remove('mic-active');
             }
-            // 卡片複習介面的麥克風渲染交給 render() 處理，但旗標必須同步
             if (!document.getElementById('card-display').classList.contains('hidden')) {
                 render();
             }
@@ -235,7 +233,6 @@
 
             recognition.onresult = (e) => {
                 const text = e.results[0][0].transcript;
-                // 收到結果後主動停止錄音
                 recognition.stop();
                 if (!document.getElementById('quiz-state').classList.contains('hidden')) {
                     processQuizResult(text);
@@ -358,14 +355,28 @@
             }
         }
 
-        function processRecognitionResult(text) {
-            const target = queue[0].english.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
-            const user = text.toLowerCase().trim();
+        // 核心評分邏輯 (模組化供複習與測驗使用)
+        function calculatePronunciationScore(userText, targetText) {
+            const target = targetText.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
+            const user = userText.toLowerCase().trim();
             const targetWords = target.split(/\s+/);
             const userWords = user.split(/\s+/);
-            const diff = userWords.map(w => ({ word: w, status: targetWords.includes(w) ? 'correct' : 'error' }));
+            
+            const diff = userWords.map(w => ({ 
+                word: w, 
+                status: targetWords.includes(w) ? 'correct' : 'error' 
+            }));
+            
             const score = (diff.filter(d => d.status === 'correct').length / targetWords.length) * 10;
-            lastRecognition = { transcript: text, score: Math.min(10, score).toFixed(1), diff };
+            return {
+                score: Math.min(10, score).toFixed(1),
+                diff
+            };
+        }
+
+        function processRecognitionResult(text) {
+            const { score, diff } = calculatePronunciationScore(text, queue[0].english);
+            lastRecognition = { transcript: text, score, diff };
             render();
         }
 
@@ -450,16 +461,17 @@
         async function processQuizResult(text) {
             clearInterval(quizTimer);
             quizProcessing = true;
-            if (recognition) recognition.stop(); // 確保開始評分時已停止錄音
+            if (recognition) recognition.stop(); 
             
             const item = quizPool[quizIndex];
             const apiKey = document.getElementById('api-key-input').value;
             
-            let score = 0;
+            let scoreValue = 0;
             let transcriptText = text || "(無收音)";
 
             if (text) {
                 if (apiKey) {
+                    // 使用 AI 進行評分
                     try {
                         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                             method: 'POST',
@@ -470,21 +482,20 @@
                         });
                         const data = await response.json();
                         const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "0";
-                        score = parseFloat(aiText.match(/\d+(\.\d+)?/)?.[0] || 0);
+                        scoreValue = parseFloat(aiText.match(/\d+(\.\d+)?/)?.[0] || 0);
                     } catch (e) {
-                        score = 5.0; 
+                        // AI 失敗時回退到公式評分
+                        const result = calculatePronunciationScore(text, item.english);
+                        scoreValue = parseFloat(result.score);
                     }
                 } else {
-                    const target = item.english.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
-                    const user = text.toLowerCase().trim();
-                    const targetWords = target.split(/\s+/);
-                    const userWords = user.split(/\s+/);
-                    const correctCount = userWords.filter(w => targetWords.includes(w)).length;
-                    score = Math.min(10, (correctCount / targetWords.length) * 10);
+                    // 比照複習模式評分公式：比照複習模式評分公式一樣。
+                    const result = calculatePronunciationScore(text, item.english);
+                    scoreValue = parseFloat(result.score);
                 }
             }
 
-            quizScores[quizIndex] = score;
+            quizScores[quizIndex] = scoreValue;
             document.getElementById('quiz-transcript').innerText = transcriptText;
             
             const scoreArea = document.getElementById('quiz-score-area');
@@ -493,7 +504,7 @@
             
             if (originalEnglish) originalEnglish.innerText = item.english;
             scoreArea.classList.remove('hidden');
-            scoreTag.innerText = `${score.toFixed(1)}/10`;
+            scoreTag.innerText = `${scoreValue.toFixed(1)}/10`;
             scoreTag.classList.remove('hidden');
             
             const nextBtn = document.getElementById('quiz-next-btn');
