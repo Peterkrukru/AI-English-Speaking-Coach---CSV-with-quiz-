@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI英文口語教練_csv(含測驗)</title>
+    <title>AI英文口語教練_修復版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -20,7 +20,6 @@
             width: 100%;
             position: fixed;
         }
-        /* 使文字置中且適應容器的樣式 */
         .text-fit-container {
             display: flex;
             flex-direction: column;
@@ -29,21 +28,9 @@
             width: 100%;
             overflow: hidden;
         }
-        /* 拼寫或語音辨識錯誤的底線樣式 */
         .diff-error {
             border-bottom: 2px dotted #fca5a5;
         }
-        /* 版權標籤樣式 */
-        .copyright-tag {
-            position: absolute;
-            right: 1.5rem;
-            bottom: 1rem;
-            font-size: 10px;
-            font-weight: 600;
-            color: rgba(100, 116, 139, 0.4);
-            pointer-events: none;
-        }
-        /* 錄音中麥克風的擴散環動畫 */
         @keyframes pulse-ring {
             0% { transform: scale(.8); opacity: 0.5; }
             100% { transform: scale(1.2); opacity: 0; }
@@ -56,6 +43,7 @@
             border-radius: 50%;
             background: #ef4444;
             animation: pulse-ring 1.5s infinite;
+            z-index: 0;
         }
         .quiz-content-wrapper {
             max-height: 100%;
@@ -69,26 +57,14 @@
 <body class="bg-[#e2e4e7] text-slate-800">
     <div id="app" class="h-full w-full flex flex-col items-center px-4 py-4">
         
-        <!-- 頂部資訊列：包含統計數據與進度條 -->
+        <!-- 頂部資訊列 -->
         <div id="top-bar" class="w-full max-w-5xl bg-white/70 backdrop-blur-md px-4 py-2 rounded-[2rem] shadow-sm border border-white/50 mb-3 flex items-center gap-4 hidden shrink-0">
-            <div class="flex items-center gap-2 shrink-0">
-                <button onclick="toggleInfo(true)" class="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-100/50 rounded-full">
-                    <i data-lucide="info" class="w-5 h-5"></i>
-                </button>
-                <!-- 上傳 CSV 按鈕 -->
-                <label class="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-100/50 rounded-full cursor-pointer">
-                    <i data-lucide="upload-cloud" class="w-5 h-5"></i>
-                    <input type="file" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
-                </label>
-            </div>
-            <!-- 複習狀態統計 -->
             <div id="stats-area" class="flex items-center gap-4 text-xs font-black uppercase">
                 <div class="flex items-center gap-1"><span class="text-red-500">重來</span> <span id="stat-again">0</span></div>
                 <div class="flex items-center gap-1"><span class="text-orange-500">隨機</span> <span id="stat-random">0</span></div>
                 <div class="flex items-center gap-1"><span class="text-blue-500">複習</span> <span id="stat-review">0</span></div>
                 <div class="flex items-center gap-1"><span class="text-emerald-500">通過</span> <span id="stat-pass">0</span></div>
             </div>
-            <!-- 進度條區塊 -->
             <div class="flex-1 flex items-center gap-3">
                 <div class="flex-1 h-1.5 bg-slate-100/50 rounded-full overflow-hidden">
                     <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: 0%"></div>
@@ -100,41 +76,35 @@
 
         <div id="main-content" class="w-full max-w-4xl flex flex-col flex-1 min-h-0 overflow-hidden">
             
-            <!-- 首頁：包含 API Key 輸入與 CSV 匯入 -->
+            <!-- 首頁 -->
             <div id="empty-state" class="flex-1 flex flex-col items-center justify-center">
                 <div class="bg-[#d9dbdf]/80 backdrop-blur p-10 rounded-[3rem] w-full max-w-md flex flex-col items-center text-center shadow-sm relative border border-white/20">
                     <div class="text-blue-500 mb-6"><i data-lucide="book-open" class="w-16 h-16 stroke-[2]"></i></div>
-                    <h1 class="text-3xl font-bold text-slate-700 mb-6 tracking-tight">AI英文口語教練_csv(含測驗)</h1>
+                    <h1 class="text-3xl font-bold text-slate-700 mb-6 tracking-tight">AI英文口語教練</h1>
                     
-                    <!-- API Key 輸入框：用於測驗評分 -->
                     <div class="w-full mb-6 text-left">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-2">Gemini API Key</label>
                         <input type="password" id="api-key-input" placeholder="在此輸入 API Key..." class="w-full px-5 py-3 rounded-2xl bg-white/50 border border-slate-300 outline-none transition-all text-sm">
                     </div>
 
-                    <!-- 初始匯入按鈕 -->
                     <label class="w-full bg-white text-slate-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 transition-all shadow-sm border border-slate-200 mb-4 active:scale-[0.98]">
                         <i data-lucide="upload" class="w-6 h-6"></i>
                         <span>匯入教材 (CSV)</span>
                         <input type="file" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
                     </label>
 
-                    <!-- 開始測驗按鈕：匯入資料後顯示 -->
                     <button onclick="startQuiz(10)" id="start-quiz-btn" class="w-full bg-[#3b71fe] text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-lg active:scale-[0.98] hidden">
                         <i data-lucide="zap" class="w-6 h-6 fill-current"></i>
                         <span>進行10題測驗</span>
                     </button>
-
-                    <div class="copyright-tag">@Peter Huang 2026/4/25</div>
                 </div>
             </div>
 
-            <!-- 卡片複習介面：正面顯示單字/句型，反面顯示翻譯與辨識結果 -->
+            <!-- 卡片複習介面 -->
             <div id="card-display" class="hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div id="flashcard" class="bg-white flex-1 min-h-0 w-full rounded-[2.5rem] shadow-xl p-6 md:p-10 flex flex-col relative cursor-pointer border-b-8 border-slate-200 transition-all overflow-hidden" onclick="handleCardClick()">
                     <div id="card-body" class="flex-1 min-h-0 overflow-hidden text-fit-container"></div>
                     
-                    <!-- 間隔記憶法按鈕 (SRS) -->
                     <div id="srs-controls" class="hidden grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-50 shrink-0">
                         <button onclick="event.stopPropagation(); handleSRS('again')" class="py-4 rounded-2xl bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-black text-sm transition-all">重來</button>
                         <button onclick="event.stopPropagation(); handleSRS('random')" class="py-4 rounded-2xl bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white font-black text-sm transition-all">隨機</button>
@@ -144,25 +114,30 @@
                 </div>
             </div>
 
-            <!-- 測驗介面：顯示中文題幹，要求使用者說出英文 -->
+            <!-- 測驗介面 -->
             <div id="quiz-state" class="hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="bg-white flex-1 min-h-0 w-full rounded-[3rem] shadow-2xl p-6 flex flex-col items-center justify-center text-center relative border-b-8 border-slate-200 overflow-hidden">
                     <div id="quiz-timer" class="absolute top-6 right-8 text-3xl font-black text-slate-200">20</div>
                     
                     <div class="w-full quiz-content-wrapper">
-                        <!-- 中文題目區 -->
                         <div id="quiz-chinese" class="text-2xl md:text-3xl font-black text-slate-400 leading-tight">載入中...</div>
                         
-                        <!-- 語音辨識與 AI 評分結果 -->
                         <div id="quiz-result-display" class="flex-1 flex flex-col items-center justify-center min-h-0">
-                            <div id="quiz-transcript" class="text-3xl md:text-4xl font-black text-slate-800 leading-tight mb-2"></div>
+                            <div class="flex items-center justify-center gap-4 mb-2">
+                                <div id="quiz-transcript" class="text-3xl md:text-4xl font-black text-slate-800 leading-tight"></div>
+                                <div id="quiz-score-tag" class="hidden text-sm font-black bg-slate-100 px-3 py-1 rounded-full shadow-sm text-slate-400 border border-slate-200 shrink-0"></div>
+                            </div>
+                            
                             <div id="quiz-score-area" class="hidden flex flex-col items-center gap-2">
-                                <div id="quiz-score-tag" class="px-5 py-1.5 bg-blue-500 text-white rounded-full font-bold text-sm"></div>
-                                <div id="quiz-original-english" class="text-lg md:text-xl font-bold text-blue-600 italic px-4"></div>
+                                <div class="flex items-center gap-3 bg-blue-50 px-5 py-3 rounded-2xl border border-blue-100">
+                                    <button onclick="playQuizAnswerAudio()" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 active:scale-90 transition-all shadow-sm">
+                                        <i data-lucide="volume-2" class="w-5 h-5"></i>
+                                    </button>
+                                    <div id="quiz-original-english" class="text-lg md:text-xl font-bold text-blue-600 italic"></div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- 控制區：上一題、錄音按鈕、下一題 -->
                         <div class="flex justify-center items-center gap-6 mt-2 shrink-0">
                             <button id="quiz-prev-btn" onclick="goToPrevQuizItem()" class="w-16 h-16 rounded-full bg-slate-50 text-slate-300 flex flex-col items-center justify-center shadow hover:bg-slate-100 transition-all invisible">
                                 <i data-lucide="chevron-left" class="w-6 h-6"></i>
@@ -170,7 +145,7 @@
                             </button>
 
                             <button id="quiz-mic-btn" onclick="startQuizListening()" class="w-20 h-20 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all relative shrink-0">
-                                <i data-lucide="mic" class="w-8 h-8"></i>
+                                <i data-lucide="mic" class="w-8 h-8 relative z-10"></i>
                             </button>
 
                             <button id="quiz-next-btn" onclick="goToNextQuizItem()" class="w-16 h-16 rounded-full bg-slate-50 text-slate-300 flex flex-col items-center justify-center shadow hover:bg-blue-50 hover:text-blue-500 transition-all invisible">
@@ -184,7 +159,7 @@
                 </div>
             </div>
 
-            <!-- 結算介面：顯示測驗後的平均得分 -->
+            <!-- 結算介面 -->
             <div id="finished-state" class="flex-1 flex flex-col items-center justify-center hidden">
                 <div id="result-card" class="bg-white p-10 rounded-[3rem] shadow-xl text-center max-w-md w-full border-b-8 border-slate-200">
                     <div id="result-icon"></div>
@@ -192,7 +167,7 @@
                     <p id="result-stats" class="text-slate-500 font-medium mb-8"></p>
                     <div class="space-y-4">
                         <button onclick="location.reload()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-slate-700 transition-all shadow-lg">返回首頁</button>
-                        <button onclick="startQuiz(10)" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">口說測驗</button>
+                        <button onclick="startQuiz(10)" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">再測一次</button>
                     </div>
                 </div>
             </div>
@@ -200,49 +175,94 @@
     </div>
 
     <script>
-        // --- 全域變數定義 ---
-        let originalCards = [];     // 儲存從 CSV 讀取的完整教材
-        let queue = [];             // 複習模式中的卡片隊列
-        let isFlipped = false;      // 當前卡片是否已翻面
-        let stats = { again: 0, random: 0, review: 0, pass: 0 }; // 複習統計數據
-        let isListening = false;    // 是否正在進行語音辨識
-        let lastRecognition = null; // 最後一次語音辨識的詳細結果
+        let originalCards = [];
+        let queue = [];
+        let isFlipped = false;
+        let stats = { again: 0, random: 0, review: 0, pass: 0 };
+        let isListening = false;
+        let lastRecognition = null;
+        let retryCount = 0;
         
-        let quizPool = [];          // 測驗題庫
-        let quizIndex = 0;          // 當前測驗題目索引
-        let quizScores = [];        // 儲存每題測驗得分
-        let quizTimer = null;       // 測驗倒數計時器
-        let timeLeft = 20;          // 單題限時
-        let quizProcessing = false; // 是否正在處理 AI 評分中
+        let quizPool = [];
+        let quizIndex = 0;
+        let quizScores = [];
+        let quizTimer = null;
+        let timeLeft = 20;
+        let quizProcessing = false;
 
-        // --- 語音辨識初始化 ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitRecognition || window.webkitSpeechRecognition;
         let recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        
+        // 核心：語音辨識 UI 更新與重試邏輯
+        function updateMicUI(active) {
+            isListening = active;
+            const quizBtn = document.getElementById('quiz-mic-btn');
+            if (quizBtn) {
+                if (active) quizBtn.classList.add('mic-active');
+                else quizBtn.classList.remove('mic-active');
+            }
+            if (!document.getElementById('card-display').classList.contains('hidden')) {
+                render();
+            }
+        }
+
         if (recognition) {
             recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                updateMicUI(true);
+            };
+
             recognition.onresult = (e) => {
+                retryCount = 0; // 成功獲得結果，重置重試計數
                 const text = e.results[0][0].transcript;
-                // 根據當前介面判斷是要處理測驗還是複習辨識
+                recognition.stop();
                 if (!document.getElementById('quiz-state').classList.contains('hidden')) {
                     processQuizResult(text);
                 } else {
                     processRecognitionResult(text);
                 }
             };
-            recognition.onend = () => { 
-                isListening = false; 
-                document.getElementById('quiz-mic-btn')?.classList.remove('mic-active');
-                render(); 
+
+            recognition.onerror = (e) => {
+                console.error("Speech Recognition Error:", e.error);
+                
+                // 處理 no-speech 錯誤：自動重試機制
+                if (e.error === 'no-speech' && retryCount < 2) {
+                    retryCount++;
+                    console.log(`No speech detected, retrying... (${retryCount})`);
+                    // 稍待片刻自動重連
+                    setTimeout(() => {
+                        if (isListening) recognition.start();
+                    }, 300);
+                    return;
+                }
+
+                if (e.error === 'no-speech') {
+                    const transcriptEl = document.getElementById('quiz-transcript');
+                    if (transcriptEl) transcriptEl.innerText = "未偵測到聲音，請重試";
+                }
+                
+                updateMicUI(false);
+                retryCount = 0;
+            };
+
+            recognition.onend = () => {
+                if (retryCount === 0) { // 只有在沒有自動重試的情況下才關閉 UI
+                    updateMicUI(false);
+                }
             };
         }
 
-        // --- CSV 檔案解析函式 ---
+        // --- 核心邏輯 ---
+
         function parseCSV(text) {
             const result = [];
             let row = [];
             let col = "";
             let inQuotes = false;
-            // 逐字解析 CSV，支援引號內的換行
             for (let i = 0; i < text.length; i++) {
                 const char = text[i];
                 if (char === '"' && text[i+1] === '"') { col += '"'; i++; }
@@ -264,7 +284,6 @@
                     }
                 } else col += char;
             }
-            // 處理最後一行
             if (col !== "" || row.length > 0) {
                 row.push(col);
                 if (row.length >= 2) {
@@ -275,7 +294,6 @@
             return result;
         }
 
-        // --- 處理檔案上傳事件 ---
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -291,7 +309,6 @@
             reader.readAsText(file);
         }
 
-        // --- 開始新的複習工作階段 ---
         function startNewSession() {
             queue = [...originalCards];
             stats = { again: 0, random: 0, review: 0, pass: 0 };
@@ -304,36 +321,30 @@
             playAudio();
         }
 
-        // --- 播放語音：設定為男聲優先 ---
-        function playAudio() {
+        function playTextAsMale(text) {
             window.speechSynthesis.cancel();
-            if (!queue.length) return;
-            const card = queue[0];
-            const text = card.english; 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
             utterance.rate = 1.0; 
-            
-            // 邏輯：在系統可用語音中尋找包含 "male", "David", "Mark" 等名稱的英文男聲
             const voices = window.speechSynthesis.getVoices();
             const maleVoice = voices.find(v => 
                 (v.lang === 'en-US' && v.name.toLowerCase().includes('male')) || 
-                (v.lang === 'en-US' && v.name.includes('Google US English') && v.name.includes('Male')) ||
-                (v.lang === 'en-US' && (v.name.includes('David') || v.name.includes('Mark') || v.name.includes('James')))
+                (v.lang === 'en-US' && v.name.includes('Google US English') && v.name.includes('Male'))
             );
-            
-            if (maleVoice) {
-                utterance.voice = maleVoice;
-            } else {
-                // 若無明確男聲標籤，則套用預設美式英文語音
-                const anyEngVoice = voices.find(v => v.lang === 'en-US');
-                if (anyEngVoice) utterance.voice = anyEngVoice;
-            }
-            
+            if (maleVoice) utterance.voice = maleVoice;
             window.speechSynthesis.speak(utterance);
         }
 
-        // --- 卡片點擊事件：翻面卡片 ---
+        function playAudio() {
+            if (!queue.length) return;
+            playTextAsMale(queue[0].english);
+        }
+
+        function playQuizAnswerAudio() {
+            if (!quizPool.length) return;
+            playTextAsMale(quizPool[quizIndex].english);
+        }
+
         function handleCardClick() {
             if (!queue.length) return;
             isFlipped = !isFlipped;
@@ -342,30 +353,35 @@
             playAudio();
         }
 
-        // --- 開始麥克風錄音（複習模式） ---
         function startListening(e) {
             e.stopPropagation();
             if (!recognition) return;
-            isListening = true; lastRecognition = null; render(); recognition.start();
+            if (isListening) {
+                recognition.stop();
+                return;
+            }
+            retryCount = 0;
+            lastRecognition = null; 
+            try {
+                recognition.start();
+            } catch (err) {
+                recognition.stop();
+            }
         }
 
-        // --- 複習模式：比對語音辨識與目標文本 ---
         function processRecognitionResult(text) {
             const target = queue[0].english.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
             const user = text.toLowerCase().trim();
             const targetWords = target.split(/\s+/);
             const userWords = user.split(/\s+/);
-            // 建立簡易的比對差異（顯示紅/綠色文字）
             const diff = userWords.map(w => ({ word: w, status: targetWords.includes(w) ? 'correct' : 'error' }));
             const score = (diff.filter(d => d.status === 'correct').length / targetWords.length) * 10;
             lastRecognition = { transcript: text, score: Math.min(10, score).toFixed(1), diff };
             render();
         }
 
-        // --- 間隔記憶法 (SRS) 控制邏輯 ---
         function handleSRS(type) {
             const item = queue.shift();
-            // 依據不同按鈕將卡片插入隊列不同位置
             if (type === 'again') queue.splice(1, 0, item);
             else if (type === 'random') queue.splice(Math.floor(queue.length / 2), 0, item);
             else if (type === 'review') queue.push(item);
@@ -377,10 +393,8 @@
             if (queue.length) playAudio();
         }
 
-        // --- 進入測驗模式 ---
         function startQuiz(count) {
             if (originalCards.length < 1) return;
-            // 隨機選題並切換介面
             quizPool = [...originalCards].sort(() => Math.random() - 0.5).slice(0, count);
             quizIndex = 0;
             quizScores = Array(quizPool.length).fill(null);
@@ -390,57 +404,30 @@
             renderQuizItem();
         }
 
-        // --- 清除測驗介面的回饋資訊 ---
-        function clearQuizUIFeedback() {
-            const elements = ['quiz-score-area', 'quiz-score-tag', 'quiz-original-english', 'quiz-transcript'];
-            elements.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    if (id.includes('area')) el.classList.add('hidden');
-                    else el.innerText = "";
-                }
-            });
-        }
-
-        // --- 渲染單一測驗題目 ---
         function renderQuizItem() {
-            clearQuizUIFeedback();
+            if (recognition) recognition.stop();
+            updateMicUI(false);
+            retryCount = 0;
+            
+            document.getElementById('quiz-score-area').classList.add('hidden');
+            document.getElementById('quiz-score-tag').classList.add('hidden');
+            document.getElementById('quiz-original-english').innerText = "";
+            document.getElementById('quiz-transcript').innerText = "";
+            document.getElementById('quiz-next-btn').classList.add('invisible');
+            quizProcessing = false;
+
             const item = quizPool[quizIndex];
             document.getElementById('quiz-chinese').innerText = item.chinese;
             document.getElementById('progress-bar').style.width = `${((quizIndex) / quizPool.length) * 100}%`;
             document.getElementById('queue-count').innerText = `${quizIndex + 1} / ${quizPool.length}`;
 
-            const nextBtn = document.getElementById('quiz-next-btn');
             const prevBtn = document.getElementById('quiz-prev-btn');
-            
-            nextBtn.classList.add('invisible');
             prevBtn.classList.add('invisible');
-
             if (quizIndex > 0) prevBtn.classList.remove('invisible');
             
-            quizProcessing = false;
             resetQuizTimer();
         }
 
-        // --- 顯示已經完成過的題目分數（用於上/下一題切換時） ---
-        function displayExistingScore() {
-            const score = quizScores[quizIndex];
-            const item = quizPool[quizIndex];
-            
-            const scoreArea = document.getElementById('quiz-score-area');
-            const scoreTag = document.getElementById('quiz-score-tag');
-            const originalEnglish = document.getElementById('quiz-original-english');
-            
-            if (scoreTag) scoreTag.innerText = `得分：${score.toFixed(1)}`;
-            if (originalEnglish) originalEnglish.innerText = item.english;
-            if (scoreArea) scoreArea.classList.remove('hidden');
-            
-            const nextBtn = document.getElementById('quiz-next-btn');
-            nextBtn.classList.remove('invisible');
-            nextBtn.querySelector('span').innerText = (quizIndex < quizPool.length - 1) ? "下一題" : "結算";
-        }
-
-        // --- 重設測驗計時器 ---
         function resetQuizTimer() {
             clearInterval(quizTimer);
             timeLeft = 20;
@@ -456,52 +443,82 @@
             }, 1000);
         }
 
-        // --- 啟動測驗錄音 ---
         function startQuizListening() {
-            if (!recognition || quizProcessing) return;
-            isListening = true;
-            document.getElementById('quiz-mic-btn').classList.add('mic-active');
-            recognition.start();
+            if (!recognition) return;
+            if (isListening) {
+                recognition.stop();
+                return;
+            }
+            
+            retryCount = 0;
+            document.getElementById('quiz-transcript').innerText = "聆聽中...";
+            document.getElementById('quiz-score-area').classList.add('hidden');
+            document.getElementById('quiz-score-tag').classList.add('hidden');
+            document.getElementById('quiz-next-btn').classList.add('invisible');
+            
+            try {
+                recognition.start();
+            } catch (err) {
+                recognition.stop();
+            }
         }
 
-        // --- 處理測驗結果：呼叫 Gemini API 進行 AI 評分 ---
         async function processQuizResult(text) {
             clearInterval(quizTimer);
             quizProcessing = true;
+            if (recognition) recognition.stop();
+            
             const item = quizPool[quizIndex];
             const apiKey = document.getElementById('api-key-input').value;
             
             let score = 0;
-            let transcriptText = text || "(無收音)";
+            let transcriptText = text || "(未檢測到有效發音)";
 
-            // 若有 API Key 則發送請求給 AI 模型
-            if (text && apiKey) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: `評估英文翻譯：將「${item.chinese}」譯為英文。學生說：「${text}」。請給出 0-10 分(僅回傳數字)。` }] }]
-                        })
-                    });
-                    const data = await response.json();
-                    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "0";
-                    score = parseFloat(aiText.match(/\d+(\.\d+)?/)?.[0] || 0);
-                } catch (e) {
-                    score = 5.0; // 發生錯誤時給予中性分
+            if (text) {
+                if (apiKey) {
+                    try {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: `評估英文翻譯：將「${item.chinese}」譯為英文。學生說：「${text}」。請給出 0-10 分(僅回傳數字)。` }] }]
+                            })
+                        });
+                        const data = await response.json();
+                        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "0";
+                        score = parseFloat(aiText.match(/\d+(\.\d+)?/)?.[0] || 0);
+                    } catch (e) {
+                        score = 5.0; 
+                    }
+                } else {
+                    const target = item.english.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
+                    const user = text.toLowerCase().trim();
+                    const targetWords = target.split(/\s+/);
+                    const userWords = user.split(/\s+/);
+                    const correctCount = userWords.filter(w => targetWords.includes(w)).length;
+                    score = Math.min(10, (correctCount / targetWords.length) * 10);
                 }
-            } else if (text) {
-                score = 5.0; // 無 API Key 但有錄音
             }
 
             quizScores[quizIndex] = score;
             document.getElementById('quiz-transcript').innerText = transcriptText;
-            displayExistingScore();
+            
+            const scoreArea = document.getElementById('quiz-score-area');
+            const scoreTag = document.getElementById('quiz-score-tag');
+            const originalEnglish = document.getElementById('quiz-original-english');
+            
+            if (originalEnglish) originalEnglish.innerText = item.english;
+            scoreArea.classList.remove('hidden');
+            scoreTag.innerText = `${score.toFixed(1)}/10`;
+            scoreTag.classList.remove('hidden');
+            
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.classList.remove('invisible');
+            nextBtn.querySelector('span').innerText = (quizIndex < quizPool.length - 1) ? "下一題" : "結算";
+            lucide.createIcons();
         }
 
-        // --- 切換到下一題 ---
         function goToNextQuizItem() {
-            clearQuizUIFeedback();
             if (quizIndex < quizPool.length - 1) {
                 quizIndex++;
                 renderQuizItem();
@@ -510,34 +527,32 @@
             }
         }
 
-        // --- 切換到上一題 ---
         function goToPrevQuizItem() {
-            clearQuizUIFeedback();
             if (quizIndex > 0) {
                 quizIndex--;
+                quizScores[quizIndex] = null;
                 renderQuizItem();
             }
         }
 
-        // --- 顯示測驗最終統計結果 ---
         function showQuizFinalResult() {
             document.getElementById('quiz-state').classList.add('hidden');
             document.getElementById('finished-state').classList.remove('hidden');
-            const validScores = quizScores.filter(s => s !== null);
-            const avg = validScores.length ? (validScores.reduce((a,b)=>a+b,0)/validScores.length).toFixed(1) : 0;
-            document.getElementById('result-icon').innerHTML = `<div class="text-7xl font-black text-blue-500 mb-6">${avg}</div>`;
+            document.getElementById('result-icon').innerHTML = `<i data-lucide="check-circle-2" class="w-24 h-24 text-blue-500 mx-auto mb-6"></i>`;
             document.getElementById('result-title').innerText = "測驗結算";
-            document.getElementById('result-stats').innerText = `平均得分 (滿分 10.0)`;
+            
+            const totalScore = quizScores.reduce((a, b) => (a || 0) + (b || 0), 0);
+            const avgScore = (totalScore / quizPool.length).toFixed(1);
+            document.getElementById('result-stats').innerText = `平均得分：${avgScore} / 10`;
+            lucide.createIcons();
         }
 
-        // --- 核心渲染函式：依據狀態更新介面 ---
         function render() {
             const display = document.getElementById('card-display');
             const finished = document.getElementById('finished-state');
             const topBar = document.getElementById('top-bar');
             const quiz = document.getElementById('quiz-state');
             
-            // 複習完畢檢核
             if (!queue.length && quiz.classList.contains('hidden') && finished.classList.contains('hidden') && originalCards.length > 0) {
                 display.classList.add('hidden'); topBar.classList.add('hidden'); finished.classList.remove('hidden');
                 document.getElementById('result-icon').innerHTML = `<i data-lucide="check-circle-2" class="w-16 h-16 text-emerald-500 mx-auto mb-6"></i>`;
@@ -549,7 +564,6 @@
 
             if (originalCards.length > 0) topBar.classList.remove('hidden');
             
-            // 更新狀態統計
             document.getElementById('stat-again').innerText = stats.again;
             document.getElementById('stat-random').innerText = stats.random;
             document.getElementById('stat-review').innerText = stats.review;
@@ -566,9 +580,7 @@
             const cardBody = document.getElementById('card-body');
             const srsControls = document.getElementById('srs-controls');
 
-            // 渲染卡片內容
             if (!isFlipped) {
-                // 正面渲染
                 srsControls.classList.add('hidden');
                 cardBody.innerHTML = `
                     <div class="flex items-center gap-6">
@@ -576,7 +588,6 @@
                         <div class="text-4xl md:text-5xl font-black text-slate-700 leading-tight">${card.front_display}</div>
                     </div>`;
             } else {
-                // 反面渲染
                 srsControls.classList.remove('hidden');
                 const fs = card.english.length > 40 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl';
                 
@@ -586,7 +597,7 @@
                     resultHtml = `
                         <div class="flex-1 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between">
                             <div class="${fs} font-bold leading-tight">${diffHtml}</div>
-                            <div class="text-2xl font-black text-slate-700 ml-4">${lastRecognition.score}<span class="text-xs font-normal text-slate-300">/10</span></div>
+                            <div class="text-sm font-black bg-white px-3 py-1 rounded-full shadow-sm text-slate-400 shrink-0 ml-4 border border-slate-100">${lastRecognition.score}/10</div>
                         </div>`;
                 }
 
@@ -611,23 +622,14 @@
                         </div>
                     </div>`;
             }
-            lucide.createIcons(); // 重新觸發圖標渲染
+            lucide.createIcons();
         }
 
-        // --- 顯示/隱藏資訊模態框 ---
-        function toggleInfo(s) { 
-            const info = document.getElementById('info-modal');
-            if(info) info.classList.toggle('hidden', !s); 
-        }
-
-        // --- 視窗載入初始化 ---
         window.onload = () => { 
-            // 讀取快取的 API Key
             const savedKey = localStorage.getItem('gemini_api_key');
             if(savedKey) document.getElementById('api-key-input').value = savedKey;
             document.getElementById('api-key-input').onchange = (e) => localStorage.setItem('gemini_api_key', e.target.value);
             
-            // 預載語音清單
             window.speechSynthesis.getVoices();
             if (speechSynthesis.onvoiceschanged !== undefined) {
                 speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
