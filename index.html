@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI英文口語教練_csv(含測驗)</title>
+    <title>AI英文口語教練_csv(含測驗與自動存檔)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -66,10 +66,9 @@
 <body class="bg-[#e2e4e7] text-slate-800">
     <div id="app" class="h-full w-full flex flex-col items-center px-4 py-4">
         
-        <!-- 頂部資訊列 -->
+        <!-- 頂部資訊列 (包含進度與統計) -->
         <div id="top-bar" class="w-full max-w-5xl bg-white/70 backdrop-blur-md px-4 py-2 rounded-[2rem] shadow-sm border border-white/50 mb-3 flex items-center gap-4 hidden shrink-0">
             <div class="flex items-center gap-2 shrink-0">
-                <!-- 說明條按鈕 -->
                 <button onclick="toggleInfo(true)" class="p-1.5 text-slate-400 hover:text-blue-500 bg-slate-100/50 rounded-full">
                     <i data-lucide="info" class="w-5 h-5"></i>
                 </button>
@@ -90,12 +89,12 @@
                 </div>
                 <div id="queue-count" class="text-xs font-black text-slate-400">0 / 0</div>
             </div>
-            <button onclick="location.reload()" class="px-4 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-full hover:bg-slate-700 transition-all">首頁</button>
+            <button onclick="clearAndReload()" class="px-4 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-full hover:bg-slate-700 transition-all">首頁</button>
         </div>
 
         <div id="main-content" class="w-full max-w-4xl flex flex-col flex-1 min-h-0 overflow-hidden">
             
-            <!-- 初始狀態 (匯入頁面) -->
+            <!-- 初始匯入狀態 -->
             <div id="empty-state" class="flex-1 flex flex-col items-center justify-center">
                 <div class="bg-[#d9dbdf]/80 backdrop-blur p-10 rounded-[3rem] w-full max-w-md flex flex-col items-center text-center shadow-sm relative border border-white/20">
                     <div class="text-blue-500 mb-6"><i data-lucide="book-open" class="w-16 h-16 stroke-[2]"></i></div>
@@ -121,7 +120,7 @@
                 </div>
             </div>
 
-            <!-- 卡片複習狀態 -->
+            <!-- 卡片複習區域 -->
             <div id="card-display" class="hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div id="flashcard" class="bg-white flex-1 min-h-0 w-full rounded-[2.5rem] shadow-xl p-6 md:p-10 flex flex-col relative cursor-pointer border-b-8 border-slate-200 transition-all overflow-hidden" onclick="handleCardClick()">
                     <div id="card-body" class="flex-1 min-h-0 overflow-hidden text-fit-container"></div>
@@ -135,7 +134,7 @@
                 </div>
             </div>
 
-            <!-- 測驗狀態 -->
+            <!-- 測驗區域 -->
             <div id="quiz-state" class="hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="bg-white flex-1 min-h-0 w-full rounded-[3rem] shadow-2xl p-6 flex flex-col items-center justify-center text-center relative border-b-8 border-slate-200 overflow-hidden">
                     <div id="quiz-timer" class="absolute top-6 right-8 text-3xl font-black text-slate-200">20</div>
@@ -180,14 +179,14 @@
                 </div>
             </div>
 
-            <!-- 完成/結算狀態 -->
+            <!-- 完成結算頁面 -->
             <div id="finished-state" class="flex-1 flex flex-col items-center justify-center hidden">
                 <div id="result-card" class="bg-white p-10 rounded-[3rem] shadow-xl text-center max-w-md w-full border-b-8 border-slate-200">
                     <div id="result-icon"></div>
                     <h2 id="result-title" class="text-2xl font-bold mb-2 text-slate-800">練習完成！</h2>
                     <p id="result-stats" class="text-slate-500 font-medium mb-8"></p>
                     <div class="space-y-4">
-                        <button onclick="location.reload()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-slate-700 transition-all shadow-lg">返回首頁</button>
+                        <button onclick="clearAndReload()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-slate-700 transition-all shadow-lg">返回首頁</button>
                         <button onclick="startQuiz(10)" class="w-full bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">口說測驗</button>
                     </div>
                 </div>
@@ -195,7 +194,7 @@
         </div>
     </div>
 
-    <!-- 說明條彈窗 -->
+    <!-- 說明 Modal -->
     <div id="info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center px-6 hidden">
         <div class="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative">
             <button onclick="toggleInfo(false)" class="absolute top-6 right-6 text-slate-300 hover:text-slate-500"><i data-lucide="x" class="w-6 h-6"></i></button>
@@ -218,19 +217,47 @@
 
     <script>
         // --- 核心變數 ---
-        let originalCards = []; // CSV 原始資料
-        let queue = [];         // SRS 複習佇列
-        let isFlipped = false;  // 卡片翻面狀態
+        let originalCards = [];
+        let queue = [];
+        let isFlipped = false;
         let stats = { again: 0, random: 0, review: 0, pass: 0 };
         let isListening = false;
         let lastRecognition = null;
         
-        let quizPool = [];    // 測驗隨機池
-        let quizIndex = 0;    // 當前測驗索引
-        let quizScores = [];  // 各題得分
-        let quizTimer = null; // 計時器 ID
-        let timeLeft = 20;    // 剩餘時間
-        let quizProcessing = false; // 是否處理中
+        let quizPool = [];
+        let quizIndex = 0;
+        let quizScores = [];
+        let quizTimer = null;
+        let timeLeft = 20;
+        let quizProcessing = false;
+
+        const SAVE_KEY = 'ai_english_coach_progress';
+
+        // --- 自動存檔功能 ---
+        function saveProgress() {
+            const data = { originalCards, queue, stats, timestamp: Date.now() };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem(SAVE_KEY);
+            if (!saved) return false;
+            try {
+                const data = JSON.parse(saved);
+                if (data.originalCards && data.originalCards.length > 0) {
+                    originalCards = data.originalCards;
+                    queue = data.queue;
+                    stats = data.stats || { again: 0, random: 0, review: 0, pass: 0 };
+                    return true;
+                }
+            } catch (e) { console.error("無法讀取存檔", e); }
+            return false;
+        }
+
+        function clearAndReload() {
+            localStorage.removeItem(SAVE_KEY);
+            location.reload();
+        }
 
         // --- 語音辨識模組 ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitRecognition || window.webkitSpeechRecognition;
@@ -261,9 +288,7 @@
             recognition.onerror = () => updateMicUI(false);
         }
 
-        /** * [模組] CSV 解析
-         * 處理含引號與多行內容的資料格式
-         */
+        // --- CSV 解析模組 ---
         function parseCSV(text) {
             const result = [];
             let row = [];
@@ -318,46 +343,34 @@
             document.querySelectorAll('#empty-state, #finished-state, #quiz-state').forEach(el => el.classList.add('hidden'));
             document.getElementById('card-display').classList.remove('hidden');
             document.getElementById('top-bar').classList.remove('hidden');
+            saveProgress();
             render();
             playAudio();
         }
 
-        // --- 語音播放 ---
-function playTextAsMale(text) {
-    // 1. 先取消當前正在播放的聲音
-    window.speechSynthesis.cancel();
+        function resumeSession() {
+            document.querySelectorAll('#empty-state, #finished-state, #quiz-state').forEach(el => el.classList.add('hidden'));
+            document.getElementById('card-display').classList.remove('hidden');
+            document.getElementById('top-bar').classList.remove('hidden');
+            document.getElementById('start-quiz-btn').classList.remove('hidden');
+            render();
+            playAudio();
+        }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 1.0; 
-    utterance.pitch = 0.9; // 稍微調低音調，讓聲音聽起來較沉穩（偏男聲）
-
-    // 2. 取得系統目前可用的語音包
-    const voices = window.speechSynthesis.getVoices();
-    
-    // 3. 尋找男聲 (優先順序：包含 Male -> 包含 Google -> 系統第一順位英文)
-    let selectedVoice = voices.find(v => 
-        v.lang.startsWith('en-US') && v.name.toLowerCase().includes('male')
-    );
-
-    if (!selectedVoice) {
-        selectedVoice = voices.find(v => 
-            v.lang.startsWith('en-US') && v.name.includes('Google')
-        );
-    }
-
-    if (!selectedVoice) {
-        selectedVoice = voices.find(v => v.lang.startsWith('en-US'));
-    }
-
-    // 4. 如果有找到合適的語音包，就套用
-    if (selectedVoice) {
-        utterance.voice = selectedVoice;
-    }
-
-    // 5. 播放
-    window.speechSynthesis.speak(utterance);
-}
+        // --- 朗讀模組 ---
+        function playTextAsMale(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0; 
+            utterance.pitch = 0.9; 
+            const voices = window.speechSynthesis.getVoices();
+            let selectedVoice = voices.find(v => v.lang.startsWith('en-US') && v.name.toLowerCase().includes('male'));
+            if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith('en-US') && v.name.includes('Google'));
+            if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith('en-US'));
+            if (selectedVoice) utterance.voice = selectedVoice;
+            window.speechSynthesis.speak(utterance);
+        }
         function playAudio() { if (queue.length) playTextAsMale(queue[0].english); }
         function playQuizAnswerAudio() { if (quizPool.length) playTextAsMale(quizPool[quizIndex].english); }
 
@@ -366,7 +379,6 @@ function playTextAsMale(text) {
             isFlipped = !isFlipped;
             lastRecognition = null;
             render();
-            playAudio();
         }
 
         function startListening(e) {
@@ -376,9 +388,7 @@ function playTextAsMale(text) {
             try { recognition.start(); } catch (err) { updateMicUI(false); }
         }
 
-        /**
-         * [模組] 核心評分公式 (單字級比對)
-         */
+        // --- 評分與 SRS 演算法 ---
         function calculatePronunciationScore(userText, targetText) {
             const target = targetText.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
             const user = userText.toLowerCase().trim();
@@ -395,9 +405,6 @@ function playTextAsMale(text) {
             render();
         }
 
-        /**
-         * [模組] SRS 間隔重複
-         */
         function handleSRS(type) {
             const item = queue.shift();
             if (type === 'again') queue.splice(1, 0, item);
@@ -405,10 +412,11 @@ function playTextAsMale(text) {
             else if (type === 'review') queue.push(item);
             stats[type]++; 
             isFlipped = false; lastRecognition = null;
+            saveProgress();
             render(); if (queue.length) playAudio();
         }
 
-        // --- 測驗控制 ---
+        // --- 測驗模組 ---
         function startQuiz(count) {
             if (originalCards.length < 1) return;
             quizPool = [...originalCards].sort(() => Math.random() - 0.5).slice(0, count);
@@ -437,9 +445,6 @@ function playTextAsMale(text) {
             resetQuizTimer();
         }
 
-        /**
-         * [模組] 測驗計時器
-         */
         function resetQuizTimer() {
             clearInterval(quizTimer);
             timeLeft = 20;
@@ -464,9 +469,6 @@ function playTextAsMale(text) {
             try { recognition.start(); } catch (err) { recognition.stop(); }
         }
 
-        /**
-         * [模組] AI/公式雙軌評分
-         */
         async function processQuizResult(text) {
             clearInterval(quizTimer);
             quizProcessing = true;
@@ -519,7 +521,7 @@ function playTextAsMale(text) {
             lucide.createIcons();
         }
 
-        // --- 視窗渲染邏輯 ---
+        // --- 渲染 UI 邏輯 ---
         function render() {
             const display = document.getElementById('card-display');
             const finished = document.getElementById('finished-state');
@@ -531,6 +533,7 @@ function playTextAsMale(text) {
                 document.getElementById('result-icon').innerHTML = `<i data-lucide="check-circle-2" class="w-16 h-16 text-emerald-500 mx-auto mb-6"></i>`;
                 document.getElementById('result-title').innerText = "複習完成！";
                 document.getElementById('result-stats').innerText = "您已完成目前所有的教材隊列。";
+                localStorage.removeItem(SAVE_KEY);
                 lucide.createIcons(); return;
             }
 
@@ -552,7 +555,13 @@ function playTextAsMale(text) {
 
             if (!isFlipped) {
                 srsControls.classList.add('hidden');
-                cardBody.innerHTML = `<div class="flex items-center gap-6"><div class="text-blue-500 bg-blue-50 p-3 rounded-2xl shrink-0"><i data-lucide="volume-2" class="w-8 h-8"></i></div><div class="text-4xl md:text-5xl font-black text-slate-700 leading-tight">${card.front_display}</div></div>`;
+                cardBody.innerHTML = `
+                    <div class="flex items-center gap-6">
+                        <button onclick="event.stopPropagation(); playAudio();" class="text-blue-500 bg-blue-50 p-3 rounded-2xl shrink-0 hover:bg-blue-100 transition-all">
+                            <i data-lucide="volume-2" class="w-8 h-8"></i>
+                        </button>
+                        <div class="text-4xl md:text-5xl font-black text-slate-700 leading-tight">${card.front_display}</div>
+                    </div>`;
             } else {
                 srsControls.classList.remove('hidden');
                 const fs = card.english.length > 40 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl';
@@ -561,7 +570,26 @@ function playTextAsMale(text) {
                     const diffHtml = lastRecognition.diff.map(d => `<span class="${d.status === 'correct' ? 'text-emerald-500' : 'text-red-500 diff-error'}">${d.word}</span>`).join(' ');
                     resultHtml = `<div class="flex-1 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between"><div class="${fs} font-bold leading-tight">${diffHtml}</div><div class="text-sm font-black bg-white px-3 py-1 rounded-full shadow-sm text-slate-400 shrink-0 ml-4 border border-slate-100">${lastRecognition.score}/10</div></div>`;
                 }
-                cardBody.innerHTML = `<div class="flex flex-col gap-6"><div class="flex items-start"><div class="text-blue-500 bg-blue-50 p-3 rounded-2xl mr-6 shrink-0"><i data-lucide="volume-2" class="w-8 h-8"></i></div><div class="${fs} font-black text-slate-800 leading-tight">${card.english}</div></div><div class="flex items-center gap-4"><button onclick="startListening(event)" class="p-3 rounded-2xl ${isListening ? 'bg-red-500 text-white' : 'bg-emerald-50 text-emerald-600'} transition-all shrink-0 relative flex items-center justify-center"><div class="${isListening ? 'mic-active' : ''}"></div><i data-lucide="mic" class="w-8 h-8 relative z-10"></i></button>${resultHtml}</div><div class="flex"><div class="w-8 mr-6 p-3 shrink-0 invisible"></div><div class="text-xl md:text-2xl font-medium text-slate-400 border-l-4 border-slate-200 pl-6">${card.chinese}</div></div></div>`;
+                cardBody.innerHTML = `
+                    <div class="flex flex-col gap-6">
+                        <div class="flex items-start">
+                            <button onclick="event.stopPropagation(); playAudio();" class="text-blue-500 bg-blue-50 p-3 rounded-2xl mr-6 shrink-0 hover:bg-blue-100 transition-all">
+                                <i data-lucide="volume-2" class="w-8 h-8"></i>
+                            </button>
+                            <div class="${fs} font-black text-slate-800 leading-tight">${card.english}</div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button onclick="startListening(event)" class="p-3 rounded-2xl ${isListening ? 'bg-red-500 text-white' : 'bg-emerald-50 text-emerald-600'} transition-all shrink-0 relative flex items-center justify-center">
+                                <div class="${isListening ? 'mic-active' : ''}"></div>
+                                <i data-lucide="mic" class="w-8 h-8 relative z-10"></i>
+                            </button>
+                            ${resultHtml}
+                        </div>
+                        <div class="flex">
+                            <div class="w-8 mr-6 p-3 shrink-0 invisible"></div>
+                            <div class="text-xl md:text-2xl font-medium text-slate-400 border-l-4 border-slate-200 pl-6">${card.chinese}</div>
+                        </div>
+                    </div>`;
             }
             lucide.createIcons();
         }
@@ -572,6 +600,10 @@ function playTextAsMale(text) {
             const savedKey = localStorage.getItem('gemini_api_key');
             if(savedKey) document.getElementById('api-key-input').value = savedKey;
             document.getElementById('api-key-input').onchange = (e) => localStorage.setItem('gemini_api_key', e.target.value);
+            
+            // 嘗試載入上次進度
+            if (loadProgress()) { resumeSession(); }
+
             window.speechSynthesis.getVoices();
             if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
             lucide.createIcons(); 
