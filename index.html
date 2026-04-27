@@ -198,18 +198,13 @@
     <div id="info-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center px-6 hidden">
         <div class="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative">
             <button onclick="toggleInfo(false)" class="absolute top-6 right-6 text-slate-300 hover:text-slate-500"><i data-lucide="x" class="w-6 h-6"></i></button>
-            <h3 class="text-2xl font-black text-slate-800 mb-6">教材匯入說明</h3>
+            <h3 class="text-2xl font-black text-slate-800 mb-6">教材準備和匯入說明</h3>
             <div class="space-y-4 text-slate-600 font-medium leading-relaxed">
                 <p>請備妥一個符合格式的 <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-bold">CSV</span> 檔案：</p>
                 <ul class="list-disc list-inside space-y-2 text-sm">
-                    <li>第一欄：關鍵字 (顯示於卡片正面)</li>
-                    <li>第二欄：第一行為「正確英文」，其餘為「中文說明」</li>
-                    <li>請將檔案另存為 <span class="font-bold underline">UTF-8</span> 編碼格式</li>
+                    <li>1.課文準備：利用「promp_影片擷取英文句子轉成csv格式.txt」Copy 至gemini製作脚本(XXX.csv)。</li>
+                    <li>2.口語練習：將脚本(XXX.csv)匯入「AI英文口語教練_csv(含測驗)」，不需填API，即可練習。</li>
                 </ul>
-                <div class="bg-slate-50 p-4 rounded-2xl text-xs font-mono text-slate-400">
-                    單字A, "Apple\n蘋果"<br>
-                    句子B, "How are you?\n你最近好嗎？"
-                </div>
             </div>
             <button onclick="toggleInfo(false)" class="w-full mt-8 bg-blue-500 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-600 transition-all">我明白了</button>
         </div>
