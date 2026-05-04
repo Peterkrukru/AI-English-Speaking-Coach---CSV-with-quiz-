@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI英文口語教練_csv(含測驗與自動存檔)</title>
+    <title>AI英文口語教練_csv(含測驗)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -357,8 +357,8 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
-            utterance.rate = 1.0; 
-            utterance.pitch = 0.9; 
+            utterance.rate = 0.9; 
+            utterance.pitch = 1.0; 
             const voices = window.speechSynthesis.getVoices();
             let selectedVoice = voices.find(v => v.lang.startsWith('en-US') && v.name.toLowerCase().includes('male'));
             if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith('en-US') && v.name.includes('Google'));
